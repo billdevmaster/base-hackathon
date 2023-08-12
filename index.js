@@ -7,9 +7,9 @@ const Web3 = require('web3');
 const axios = require('axios');
 require('dotenv').config();
 const app = express();
-const tokenAddress = "0x0cC79d980392a6e63D7721D63133FCBd2fa3250a";
-const adminAddress = "0xf3BD9c66deC63b71179De31de64Af518F0B79723";
-const web3 = new Web3(new Web3.providers.HttpProvider("https://goerli.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"));
+const tokenAddress = "0xC3Df0c5405315A708176d1828F80C77f80f5DC7c";
+const adminAddress = "0x911a7F0f80d7A509C31445fD108C4D0c86bd66eF";
+const web3 = new Web3(new Web3.providers.HttpProvider("https://optimism-mainnet.public.blastapi.io"));
 const tokenABI = [
   {
     "inputs": [
@@ -45,7 +45,7 @@ const configuration = {
   database: process.env.database,
   acquireTimeout: 10000000000
 };
-const rate = 4; // 1 credit = 4 tokens
+const rate = 1; // 1 credit = 4 tokens
 let connection;
 
 
@@ -56,129 +56,6 @@ app.use(cors({ origin: '*' }));
 // Define a route
 app.get('/', (req, res) => {
   res.send('Hello, World!');
-});
-
-app.post('/saveGameData', async (req, res) => {
-  const data = req.body;
-  const hash = req.query.hash;
-  const input = data.address + data.coins + secretEncryptionKey;
-  const hashServer = hashString(input);
-  let sql = "";
-  if (hashServer == hash) {
-    // save 
-    sql = `SELECT * FROM gameData WHERE address='${data.address}'`;
-    connection.query(sql, (err, result) => {
-      if (err) throw err;
-      if (result.length > 0) { // update
-        sql = `UPDATE gameData SET 
-          sound=${data.sound}, 
-          music=${data.music}, 
-          highscore=${data.highscore}, 
-          playcount=${data.playcount}, 
-          ads=${data.ads}, 
-          coins=${data.coins}, 
-          xp=${data.xp}, 
-          level=${data.level}, 
-          installDays=${data.installDays}, 
-          selectedTheme='${data.selectedTheme}', 
-          classicSevenBetStep=${data.classicSevenBetStep}, 
-          volume=${data.volume} 
-          WHERE address='${data.address}'`;
-      } else { // insert
-        sql = `INSERT INTO gameData (
-          address, 
-          sound, 
-          music, 
-          highscore, 
-          playcount, 
-          ads, 
-          coins, 
-          xp, 
-          level, 
-          installDays, 
-          selectedTheme, 
-          classicSevenBetStep, 
-          volume) VALUES (
-          '${data.address}', 
-          ${data.sound}, 
-          ${data.music}, 
-          ${data.highscore}, 
-          ${data.playcount}, 
-          ${data.ads}, 
-          ${data.coins}, 
-          ${data.xp}, 
-          ${data.level}, 
-          ${data.installDays}, 
-          '${data.selectedTheme}', 
-          ${data.classicSevenBetStep}, 
-          ${data.volume})`;
-      }
-      connection.query(sql, (err1, result1) => {
-        if (err1) throw err1;
-        console.log(result1);
-        res.json("success");
-      });
-    });
-  }
-});
-
-app.get('/getGameData', (req, res) => {
-  const address = req.query.address;
-  const sql = `SELECT * FROM gameData WHERE address='${address}'`;
-  connection.query(sql, (err, result) => {
-    if (err) throw err;
-    if (result.length > 0) {
-      let retData = {...result[0], rate};
-      res.json(retData);
-    } else {
-      res.json({
-        rate,
-        sound: "1",
-        music: "1",
-        highscore: 0,
-        playcount: 0,
-        ads: "1",
-        coins: 0,
-        xp: 0,
-        level: 0,
-        installDays: 0,
-        selectedTheme: "",
-        classicSevenBetStep: 0,
-        volume: 0
-      });
-    }
-  })
-});
-
-app.post('/sellCoins', async (req, res) => {
-  const amount = req.query.amount * rate;
-  const address = req.query.address;
-  const encodedFunction = contractInstance.methods.transfer(address, Web3.utils.toWei(amount.toString(), 'ether')).encodeABI();
-  let trxHash = "";
-  const txObject = {
-    to: tokenAddress,
-    data: encodedFunction,
-    gas: 200000, // Set an appropriate gas limit
-    gasPrice: web3.utils.toWei('10', 'gwei'), // Convert gas price to Wei
-  };
-  try {
-    const account = web3.eth.accounts.privateKeyToAccount(process.env.mnemonic);
-    const signedTx = await account.signTransaction(txObject);
-    web3.eth.sendSignedTransaction(signedTx.rawTransaction)
-    .on('transactionHash', (hash) => {
-      trxHash = hash;
-    })
-    .on('receipt', (receipt) => {
-      return res.send(`success:${trxHash}`);
-    })
-    .on('error', (error) => {
-      console.log(error)
-      return res.send("error:")
-    });
-
-  } catch (e) {
-    console.log(e)    
-  }
 });
 
 app.get('/getUserCredit', (req, res) => {
@@ -256,8 +133,7 @@ async function detectTransactions() {
   console.log(lastBlock);
   while(true) {
     try {
-      const resp = await axios.get(`https://api-goerli.etherscan.io/api?module=logs&action=getLogs&fromBlock=${lastBlock + 1}&address=${tokenAddress}&apikey=TEJSMRD3P2TQYCCIT5XC7C3K5U11CE4QSG`);
-
+      const resp = await axios.get(`https://api-optimistic.etherscan.io/api?module=logs&action=getLogs&fromBlock=${lastBlock + 1}&address=${tokenAddress}&apikey=YM1HAEMC4GCCASJKHUF49VYRJV5GZ5Y7N3`);
       if (resp.data.result?.length > 0) {
         for (let i = 0; i < resp.data.result.length; i++) {
           const trxHash = resp.data.result[i].transactionHash;
